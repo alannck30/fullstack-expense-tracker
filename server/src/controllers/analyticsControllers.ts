@@ -1,23 +1,38 @@
-import { AppError } from "../middleware/errorHandler.js";
+import { AppError } from "../middleware/errorMiddleware.js";
 import { asyncHandler, sendSuccess } from "../utils/responseHelpers.js";
 import { Response, Request, NextFunction } from "express";
-import { fakeExpenses } from "./expenseControllers.js";
-import {
-  DashboardStats,
-  ExpenseCategory,
-  MonthlyTotals,
-} from "../types/index.js";
+import { DashboardStats, MonthlyTotals } from "../types/index.js";
+import Expense from "../models/Expense.js";
+
+const getMonthString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${month}-${year}`;
+};
+const getCurrentMonth = (): string => {
+  return getMonthString(new Date());
+};
+
+const getLastMonth = (): string => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 1);
+  return getMonthString(date);
+};
 
 export const getExpensesByCategories = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = "user123";
-    if (!userId) {
-      throw new AppError("User not authenticated. Please login", 401);
-    }
-    const userExpenses = fakeExpenses.filter((exp) => exp.userId === userId);
+    const userId = req.userId;
+
+    const userExpenses = await Expense.find({ userId } as any);
+
     if (userExpenses.length === 0) {
-      throw new AppError("No expenses found for this user.", 404);
+      return sendSuccess(
+        res,
+        [],
+        "No expenses found. Create an expense to get started",
+      );
     }
+
     const categoryTotals = userExpenses.reduce(
       (acc, expense) => {
         if (!acc[expense.category]) {
@@ -27,13 +42,14 @@ export const getExpensesByCategories = asyncHandler(
         acc[expense.category].count += 1;
         return acc;
       },
-      {} as Record<ExpenseCategory, { total: number; count: number }>,
+      {} as Record<string, { total: number; count: number }>,
     );
 
     const grandTotal = Object.values(categoryTotals).reduce(
       (sum, cat) => sum + cat.total,
       0,
     );
+
     const categoryArray = Object.entries(categoryTotals).map(
       // ["food",{total:475,count:5}]
       ([category, cat]) => ({
@@ -45,22 +61,15 @@ export const getExpensesByCategories = asyncHandler(
     );
 
     categoryArray.sort((a, b) => b.total - a.total);
+
     sendSuccess(res, categoryArray, "Category breakdown retrieved");
   },
 );
 
-const getMonthString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${month}-${year}`;
-};
-
 export const getMonthlyTotals = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = "user123";
-    if (!userId) {
-      throw new AppError("User not authenticated. Please login", 401);
-    }
+    const userId = req.userId;
+
     const year = req.query.year
       ? Number(req.query.year)
       : new Date().getFullYear();
@@ -77,16 +86,18 @@ export const getMonthlyTotals = asyncHandler(
       );
     }
 
-    const userExpenses = fakeExpenses.filter((exp) => {
+    const userExpenses = await Expense.find({ userId } as any);
+
+    const yearExpenses = userExpenses.filter((exp) => {
       const expenseYear = new Date(exp.date).getFullYear();
-      return exp.userId === userId && expenseYear === year;
+      return expenseYear === year;
     });
 
-    if (userExpenses.length === 0) {
+    if (yearExpenses.length === 0) {
       return sendSuccess(res, [], `No expenses found for ${year}`);
     }
 
-    const monthlyTotals = userExpenses.reduce(
+    const monthlyTotals = yearExpenses.reduce(
       (acc, expense) => {
         const monthString = getMonthString(new Date(expense.date));
         if (!acc[monthString]) {
@@ -104,7 +115,9 @@ export const getMonthlyTotals = asyncHandler(
     );
 
     const monthlyArray = Object.values(monthlyTotals);
+
     monthlyArray.sort((a, b) => a.month.localeCompare(b.month));
+
     monthlyArray.forEach((month) => {
       month.total = Math.round(month.total * 100) / 100;
     });
@@ -113,50 +126,43 @@ export const getMonthlyTotals = asyncHandler(
   },
 );
 
-const getCurrentMonth = (): string => {
-  return getMonthString(new Date());
-};
-
-const getLastMonth = (): string => {
-  const date = new Date();
-  date.setMonth(date.getMonth() - 1);
-  return getMonthString(date);
-};
-
 export const getDashboardStats = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const userId = "user123";
-    if (!userId) {
-      throw new AppError("User not authenticated. Please login", 401);
-    }
+    const userId = req.userId;
 
-    const userExpenses = fakeExpenses.filter((exp) => exp.userId === userId);
+    const userExpenses = await Expense.find({ userId } as any);
+
     if (userExpenses.length === 0) {
-      sendSuccess(
+      return sendSuccess(
         res,
         [],
         "No expenses found. Create an expense to get started",
       );
-      return;
     }
 
     const totalExpenses = userExpenses.reduce(
       (sum, expense) => sum + expense.amount,
       0,
     );
+
     const averageExpense = totalExpenses / userExpenses.length;
+
     const roundedAverageExpenseAmount = Math.round(averageExpense * 10) / 10;
 
     const amounts = userExpenses.map((expense) => expense.amount);
+
     const maxAmount = Math.max(...amounts);
+
     const minAmount = Math.min(...amounts);
 
     const highestExpense = userExpenses.find(
       (exp) => exp.amount === maxAmount,
     )!;
+
     const lowestExpense = userExpenses.find((exp) => exp.amount === minAmount)!;
 
     const currentMonth = getCurrentMonth();
+
     const currentMonthExpenses = userExpenses.filter(
       (exp) => getMonthString(new Date(exp.date)) === currentMonth,
     );
@@ -167,6 +173,7 @@ export const getDashboardStats = asyncHandler(
     );
 
     const lastMonth = getLastMonth();
+
     const lastMonthExpenses = userExpenses.filter(
       (exp) => getMonthString(new Date(exp.date)) === lastMonth,
     );
@@ -177,6 +184,7 @@ export const getDashboardStats = asyncHandler(
     );
 
     let monthlyChange = 0;
+
     if (lastMonthTotal > 0) {
       monthlyChange =
         ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100;
@@ -184,6 +192,7 @@ export const getDashboardStats = asyncHandler(
     } else if (currentMonthTotal > 0) {
       monthlyChange = 100;
     }
+
     const stats: DashboardStats = {
       totalExpenses: Math.round(totalExpenses * 100) / 100,
       expenseCount: userExpenses.length,
@@ -194,6 +203,45 @@ export const getDashboardStats = asyncHandler(
       lastMonthTotal: Math.round(lastMonthTotal * 100) / 100,
       monthlyChange,
     };
+
     sendSuccess(res, stats, "Dashboard statistics retrieved");
+  },
+);
+
+export const getSpendingTrends = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.userId;
+
+    const userExpenses = await Expense.find({ userId } as any);
+
+    if (userExpenses.length === 0) {
+      sendSuccess(
+        res,
+        [],
+        "No expenses found. Create an expense to get started",
+      );
+      return;
+    }
+
+    const trends = [];
+    const currentDate = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(currentDate.getMonth() - i);
+      const monthString = getMonthString(date);
+      const monthExpenses = userExpenses.filter(
+        (exp) => getMonthString(new Date(exp.date)) === monthString,
+      );
+      const monthTotal = monthExpenses.reduce(
+        (sum, exp) => sum + exp.amount,
+        0,
+      );
+      trends.push({
+        month: monthString,
+        total: Math.round(monthTotal * 100) / 100,
+        count: monthExpenses.length,
+      });
+    }
+    sendSuccess(res, trends, "Spending trends retrieved");
   },
 );

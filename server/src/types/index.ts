@@ -1,3 +1,5 @@
+import { Document, ObjectId } from "mongoose";
+
 export enum ExpenseCategory {
   FOOD = "food",
   TRANSPORT = "transport",
@@ -20,8 +22,26 @@ export interface Expense {
   updatedAt: Date;
 }
 
+export interface IExpense extends Document {
+  userId: ObjectId;
+  amount: number;
+  category: string;
+  description: string;
+  date: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface User {
-  id: string;
+  _id: string;
+  name: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
@@ -51,8 +71,8 @@ export interface DashboardStats {
   totalExpenses: number;
   expenseCount: number;
   roundedAverageExpenseAmount: number;
-  highestExpense: Expense;
-  lowestExpense: Expense;
+  highestExpense: IExpense;
+  lowestExpense: IExpense;
   currentMonthTotal: number;
   lastMonthTotal: number;
   monthlyChange: number;

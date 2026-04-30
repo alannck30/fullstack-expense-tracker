@@ -1,12 +1,26 @@
 import express, { Application } from "express";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import { errorHandler } from "./middleware/errorHandler.js";
+import { errorHandler } from "./middleware/errorMiddleware.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import dotenv from "dotenv";
+import cors from "cors";
+import connectDB from "./config/db.js";
+
+dotenv.config();
 
 const app: Application = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 8000;
+
+connectDB();
+
+const corsOptions = {
+  origin: "http://localhost:3000",
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
@@ -38,4 +52,8 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
+  console.log(
+    `Port loaded from: ${process.env.PORT ? ".env file" : "default (8000)"}`,
+  );
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
