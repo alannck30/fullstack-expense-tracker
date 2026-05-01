@@ -3,6 +3,8 @@ import { NextFunction, Request, Response } from "express";
 import { asyncHandler, sendSuccess } from "../utils/responseHelpers.js";
 import { AppError } from "../middleware/errorMiddleware.js";
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
+import { generateToken } from "../utils/tokenHelper.js";
 
 // export let fakeUsers: User[] = [
 //   {
@@ -71,10 +73,13 @@ export const signup = asyncHandler(
     if (existingUser) {
       throw new AppError("Email already registered", 400);
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = new User({
       name,
       email,
-      password,
+      password: hashedPassword,
     });
 
     const savedUser = await newUser.save();
@@ -85,7 +90,6 @@ export const signup = asyncHandler(
 
     const authResponse: AuthResponse = {
       user: { ...userWithoutPassword, _id: savedUser._id.toString() },
-      token: "fake-jwt-token-" + savedUser._id,
     };
 
     sendSuccess(res, authResponse, "Account created successfully", 201);
@@ -106,13 +110,21 @@ export const login = asyncHandler(
       throw new AppError("Invalid email or password", 401);
     }
 
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
     const userObject = user.toObject();
 
     const { password: _, ...userWithoutPassword } = userObject;
 
+    const token = generateToken(user._id.toString());
+
     const authResponse: AuthResponse = {
       user: { ...userWithoutPassword, _id: user._id.toString() },
-      token: "fake-jwt-token-" + user._id,
+      token,
     };
 
     sendSuccess(res, authResponse, "Login successfully");

@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { asyncHandler, sendSuccess } from "../utils/responseHelpers.js";
 import { AppError } from "../middleware/errorMiddleware.js";
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 export const getProfile = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -83,7 +84,8 @@ export const updateProfile = asyncHandler(
     }
 
     if (password) {
-      user.password = password;
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user.password = hashedPassword;
     }
 
     const updatedUser = await user.save();

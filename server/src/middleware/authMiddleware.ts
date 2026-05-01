@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AppError } from "./errorMiddleware.js";
+import jwt from "jsonwebtoken";
 
 declare global {
   namespace Express {
@@ -14,10 +15,29 @@ export const requireAuth = (
   res: Response,
   next: NextFunction,
 ) => {
-  const userId = "69f3798267bab4cf6ad9967c";
-  if (!userId) {
-    throw new AppError("User not authenticated. Please login", 401);
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    throw new AppError("No token provided, Please login", 401);
   }
-  req.userId = userId;
+
+  const parts = authHeader.split(" ");
+
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    throw new AppError("Invalid token format. Use: Bearer <token>", 401);
+  }
+
+  const token = parts[1];
+
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined in environment variables");
+  }
+
+  const decoded = jwt.verify(token, secret) as { userId: string };
+
+  req.userId = decoded.userId;
+
   next();
 };
