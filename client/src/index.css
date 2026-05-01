@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply 2xl:max-w-384 2xl:mx-auto bg-slate-950;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+}
