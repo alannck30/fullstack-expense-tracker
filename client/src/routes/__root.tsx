@@ -1,3 +1,4 @@
+import Navigation from "@/components/Common/Navigation";
 import {
   Outlet,
   createRootRoute,
@@ -22,6 +23,7 @@ function RootLayout() {
 
   return (
     <>
+      <Navigation />
       <Outlet />
     </>
   );

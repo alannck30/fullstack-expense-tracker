@@ -1,11 +1,9 @@
-import React from "react";
+import LoginForm from "@/components/Auth/LoginForm";
 
-type Props = {};
-
-function LoginPage({}: Props) {
+function LoginPage() {
   return (
-    <main>
-      <h1>LoginPage</h1>
+    <main className="bg-slate-950 px-4 py-8 sm:px-8 sm:py-12">
+      <LoginForm />
     </main>
   );
 }

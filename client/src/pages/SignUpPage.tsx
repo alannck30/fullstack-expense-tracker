@@ -1,11 +1,9 @@
-import React from "react";
+import SignupForm from "@/components/Auth/SignupForm";
 
-type Props = {};
-
-function SignUpPage({}: Props) {
+function SignUpPage() {
   return (
-    <main>
-      <h1>SignUpPage</h1>
+    <main className="bg-slate-950 px-4 py-8 sm:px-8 sm:py-12">
+      <SignupForm />
     </main>
   );
 }
