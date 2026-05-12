@@ -8,11 +8,22 @@ export type ExpenseCategory =
   | "education"
   | "other";
 
+export const expenseCategoryList: ExpenseCategory[] = [
+  "food",
+  "transport",
+  "utilities",
+  "entertainment",
+  "healthcare",
+  "shopping",
+  "education",
+  "other",
+] as const;
+
 export interface User {
   _id: string;
   name: string;
   email: string;
-  createAt: string;
+  createdAt: string;
   updatedAt: string;
 }
 

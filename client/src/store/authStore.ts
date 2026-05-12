@@ -3,6 +3,7 @@ import {
   signup as signupService,
   login as loginService,
   getProfile as getProfileService,
+  updateProfile as updateProfileService,
 } from "@/services/authService";
 import type { AuthState } from "@/types/auth.types";
 import type { AxiosError } from "axios";
@@ -14,6 +15,12 @@ interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<void>;
 
   getProfile: () => Promise<void>;
+
+  updateProfile: (data: {
+    name?: string;
+    email?: string;
+    password?: string;
+  }) => Promise<void>;
 
   logout: () => void;
 }
@@ -86,10 +93,42 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   getProfile: async () => {
     set({
       isLoading: true,
+      error: null,
     });
 
     try {
       const response = await getProfileService();
+
+      if (response.data) {
+        set({
+          user: response.data,
+          isLoading: false,
+          error: null,
+        });
+      }
+    } catch (error) {
+      const err = error as AxiosError<{ error: string }>;
+
+      set({
+        error: err.response?.data?.error,
+        isLoading: false,
+        isAuthenticated: false,
+      });
+    }
+  },
+
+  updateProfile: async (data: {
+    name?: string;
+    email?: string;
+    password?: string;
+  }) => {
+    set({
+      isLoading: true,
+      error: null,
+    });
+
+    try {
+      const response = await updateProfileService(data);
 
       if (response.data) {
         set({
