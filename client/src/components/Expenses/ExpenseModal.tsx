@@ -2,13 +2,15 @@ import { X } from "lucide-react";
 import ExpenseForm from "./ExpenseForm";
 import type { MouseEvent } from "react";
 import { useExpenseStore } from "@/store/expenseStore";
+import type { Expense } from "@/types";
 
 interface ExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  expense?: Expense;
 }
 
-function ExpenseModal({ isOpen, onClose }: ExpenseModalProps) {
+function ExpenseModal({ isOpen, onClose, expense }: ExpenseModalProps) {
   const { clearError } = useExpenseStore();
 
   if (!isOpen) {
@@ -40,7 +42,7 @@ function ExpenseModal({ isOpen, onClose }: ExpenseModalProps) {
             <X className="size-5" />
           </button>
         </div>
-        <ExpenseForm onSuccess={handleClose} />
+        <ExpenseForm onSuccess={handleClose} expense={expense} />
       </div>
     </div>
   );

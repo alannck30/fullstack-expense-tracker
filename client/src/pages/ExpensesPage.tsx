@@ -4,14 +4,56 @@ import ExpenseFilters from "@/components/Expenses/ExpenseFilters";
 import { useExpenseStore } from "@/store/expenseStore";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { Expense } from "@/types";
+import DeleteConfirmationModal from "@/components/Expenses/DeleteConfirmationModal";
 
 function ExpensesPage() {
-  const { isLoading, getAllExpenses } = useExpenseStore();
+  const { isLoading, getAllExpenses, deleteExpense } = useExpenseStore();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>(
+    undefined,
+  );
+  const [deletingExpense, setDeletingExpense] = useState<Expense | undefined>(
+    undefined,
+  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
 
-  function handleClick() {
-    setIsModalOpen(true);
+  function handleAddExpense() {
+    setEditingExpense(undefined);
+    setIsExpenseModalOpen(true);
+  }
+
+  function handleCloseModal() {
+    setEditingExpense(undefined);
+    setIsExpenseModalOpen(false);
+  }
+
+  function handleEditExpense(expense: Expense) {
+    setEditingExpense(expense);
+    setIsExpenseModalOpen(true);
+  }
+
+  function handleDeleteExpense(expense: Expense) {
+    setDeletingExpense(expense);
+    setIsDeleteModalOpen(true);
+  }
+
+  function handleCancelDelete() {
+    setIsDeleteModalOpen(false);
+    setDeletingExpense(undefined);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deletingExpense) return;
+    await deleteExpense(deletingExpense._id);
+
+    const { error: deleteError } = useExpenseStore.getState();
+
+    if (!deleteError) {
+      setIsDeleteModalOpen(false);
+      setDeletingExpense(undefined);
+    }
   }
 
   useEffect(() => {
@@ -26,7 +68,7 @@ function ExpensesPage() {
           <p className="text-gray-400 mt-1">Manage and track your expenses</p>
         </div>
         <button
-          onClick={handleClick}
+          onClick={handleAddExpense}
           className="flex items-center gap-2 px-6 py-3 bg-purple-950 text-gray-100 rounded-sm hover:bg-purple-800 transition font-medium">
           <Plus className="size-5" /> Add Expense
         </button>
@@ -41,13 +83,25 @@ function ExpensesPage() {
       {!isLoading && (
         <div className="flex flex-col gap-6">
           <ExpenseFilters />
-          <ExpenseList />
+          <ExpenseList
+            onEdit={handleEditExpense}
+            onDelete={handleDeleteExpense}
+          />
         </div>
       )}
 
       <ExpenseModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isExpenseModalOpen}
+        onClose={handleCloseModal}
+        expense={editingExpense}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        expense={deletingExpense}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDeleting={isLoading}
       />
     </main>
   );

@@ -1,35 +1,51 @@
 import { useExpenseStore } from "@/store/expenseStore";
-import { expenseCategoryList, type ExpenseCategory } from "@/types";
+import {
+  expenseCategoryList,
+  type Expense,
+  type ExpenseCategory,
+} from "@/types";
 import { getCategoryConfig } from "@/utils/CategoryConfig";
 import { useState, type SubmitEvent } from "react";
 
 interface ExpenseFormProps {
   onSuccess: () => void;
+  expense?: Expense;
 }
 
-function ExpenseForm({ onSuccess }: ExpenseFormProps) {
-  const { error, isLoading, createExpense } = useExpenseStore();
+function ExpenseForm({ onSuccess, expense }: ExpenseFormProps) {
+  const { error, isLoading, clearError, createExpense, updateExpense } =
+    useExpenseStore();
 
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<ExpenseCategory>("other");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [amount, setAmount] = useState(expense?.amount || 0);
+  const [description, setDescription] = useState(expense?.description || "");
+  const [category, setCategory] = useState<ExpenseCategory>(
+    (expense?.category as ExpenseCategory) || "other",
+  );
+  const [date, setDate] = useState(
+    expense?.date.split("T")[0] || new Date().toISOString().split("T")[0],
+  );
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    clearError();
+
     const expenseData = {
-      amount: parseFloat(amount),
+      amount,
       description,
       category,
       date,
     };
 
-    await createExpense(expenseData);
+    if (expense) {
+      await updateExpense(expense._id, expenseData);
+    } else {
+      await createExpense(expenseData);
+    }
 
     const { error: currentError } = useExpenseStore.getState();
     if (!currentError) {
-      setAmount("");
+      setAmount(0);
       setDescription("");
       setCategory("other");
       setDate(new Date().toISOString().split("T")[0]);
@@ -61,7 +77,7 @@ function ExpenseForm({ onSuccess }: ExpenseFormProps) {
                 type="number"
                 id="amount"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount(Number(e.target.value))}
                 required
                 min="0"
                 placeholder="49.99"
@@ -122,6 +138,7 @@ function ExpenseForm({ onSuccess }: ExpenseFormProps) {
                 onChange={(e) => setDate(e.target.value)}
                 required
                 disabled={isLoading}
+                max={new Date().toISOString().split("T")[0]}
                 className="px-4 py-3 bg-purple-950 rounded-sm text-gray-100 focus:outline-none focus:border-purple-500 transition-colors"
               />
             </div>
@@ -130,7 +147,7 @@ function ExpenseForm({ onSuccess }: ExpenseFormProps) {
             type="submit"
             disabled={isLoading}
             className="px-6 py-3 bg-purple-950 text-gray-100 rounded-sm border border-purple-950 hover:border-purple-950 hover:bg-transparent transition font-medium">
-            {isLoading ? "Adding..." : "Add Expense"}
+            {isLoading ? "Adding..." : expense ? "Save Changes" : "Add Expense"}
           </button>
         </form>
       </div>

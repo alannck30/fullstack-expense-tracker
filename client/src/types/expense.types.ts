@@ -10,10 +10,11 @@ export interface ExpenseFormData {
 export interface ExpenseFilters {
   category?: string;
   sort?: string;
-
-  searchTerm?: string;
+  searchTerm?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
 }
 
 export interface ExpenseState {

@@ -157,12 +157,19 @@ export const createNewExpense = asyncHandler(
       throw new AppError("Description cannot exceed 100 characters", 400);
     }
 
+    const expenseDate = date ? new Date(date) : new Date();
+    const today = new Date();
+
+    if (expenseDate > today) {
+      throw new AppError("Cannot create an expense for a future date", 400);
+    }
+
     const newExpense = new Expense({
       userId: userId,
       amount,
       category,
       description,
-      date: date ? new Date(date) : new Date(),
+      date: expenseDate,
     });
 
     const createdExpense = await newExpense.save();
